@@ -6,18 +6,16 @@ import tempfile
 import subprocess
 import shutil
 
-# Configurar HOME=/tmp para static-ffmpeg poder escrever nesse diretório no Vercel
-os.environ.setdefault("HOME", "/tmp")
-
-import static_ffmpeg
+import imageio_ffmpeg
 import yt_dlp
 from fastapi import FastAPI, Query, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from mangum import Mangum
 
-# ── Inicializar FFmpeg (baixa para /tmp na primeira chamada a frio) ──────────
-static_ffmpeg.add_paths()
+# O binário é instalado junto com imageio-ffmpeg durante o build.
+# Não tenta escrever em /var/task durante a execução no Vercel.
+FFMPEG_PATH = imageio_ffmpeg.get_ffmpeg_exe()
 
 app = FastAPI(title="Music Downloader API")
 
@@ -148,6 +146,7 @@ async def download(
         "format": "bestaudio/best",
         "outtmpl": output_template,
         "postprocessors": postprocessors,
+        "ffmpeg_location": FFMPEG_PATH,
         "noplaylist": True,
         "quiet": True,
         "no_warnings": True,
